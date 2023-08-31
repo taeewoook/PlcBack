@@ -33,7 +33,7 @@ export class AuthService {
 
   async validateUser(
     newUser: UserDTO,
-  ): Promise<{ accessToken: string } | undefined> {
+  ): Promise<{ accessToken: string; id: number; name: string } | undefined> {
     let userFind: UserDTO = await this.userService.findByFields({
       where: { email: newUser.email },
     });
@@ -47,9 +47,12 @@ export class AuthService {
     if (!validatePassword) {
       throw new UnauthorizedException();
     }
+    const payload = { email: userFind.email, name: userFind.name };
 
-    const payload = { email: userFind.email };
-
-    return { accessToken: this.jwtService.sign(payload) };
+    return {
+      accessToken: this.jwtService.sign(payload),
+      id: userFind.id,
+      name: userFind.name,
+    };
   }
 }
