@@ -2,9 +2,7 @@ import cv2
 import numpy as np
 from socket import *
 from select import *
-import sys
 from time import sleep
-
 
 # 교육키트 IP
 HOST = "192.168.0.120"
@@ -31,7 +29,7 @@ detector = cv2.SimpleBlobDetector_create(params)
 
 while True:
     ret, frame = cap.read()
-
+    print(cap.read())
     frame_blurred = cv2.GaussianBlur(frame, Gaussian_ksize, 1)
     frame_gray = cv2.cvtColor(frame_blurred, cv2.COLOR_BGR2GRAY)
     frame_canny = cv2.Canny(
@@ -122,6 +120,14 @@ while True:
                 clientSocket = socket(AF_INET, SOCK_STREAM)
                 clientSocket.connect(ADDR)
                 print("Connection PLC Success!")
+                # message = {}
+                # if num <= 3:
+                #    message = {"tagId": "11", "value": "0"}
+                # else:
+                #    message = {"tagId": "11", "value": "1"}
+                # 딕셔너리를 JSON 문자열로 직렬화
+                # json_message = json.dumps(message)
+                # clientSocket.send(json_message.encode("utf-8"))
                 clientSocket.send(socketTxData + num_little)
                 clientSocket.close()
             except Exception as e:

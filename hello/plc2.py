@@ -1,4 +1,5 @@
 import paho.mqtt.client as mqtt
+import json
 
 
 def on_connect(client, userdata, flags, rc):
@@ -18,7 +19,9 @@ def on_subscribe(client, userdata, mid, granted_qos):
 
 def on_message(client, userdata, msg):
     data = msg.payload.decode("utf-8")
-    print(str(msg.payload.decode("utf-8")))
+    data_dict = json.loads(msg.payload)
+    dice = data_dict["Wrapper"][38]["value"]
+    print(dice)  # dice 번호
 
 
 # 새로운 클라이언트 생성
