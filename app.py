@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, request
 import pymysql
+import datetime
 
 app = Flask(__name__)
 
@@ -25,6 +26,26 @@ def index():
     # 데이터를 JSON 형식으로 변환하여 반환
     print(result)
     data = [{"id": row[0], "num": row[1], "created_at": row[2]} for row in result]
+    return jsonify(data)
+
+
+@app.route("/date")
+def find():
+    data = request.json
+    cursor = db.cursor()
+    sql = """SELECT * FROM dice
+WHERE created_at BETWEEN (%s) and (%s) order by created_at ASC;"""
+    cursor.execute(sql, (data["start"], data["end"]))
+    result = cursor.fetchall()
+    data = [
+        {
+            "id": row[0],
+            "num": row[1],
+            "created_at": row[2].strftime("%Y-%m-%d %H:%M:%S"),
+        }
+        for row in result
+    ]
+    print(data)
     return jsonify(data)
 
 
