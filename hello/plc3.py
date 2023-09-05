@@ -48,24 +48,36 @@ def on_subscribe(client, userdata, mid, granted_qos):
 
 
 dice = 0
+message = {"tagId": "1", "value": "1"}
+mflag = True
+aflag = True
+dflag = True
 
 
 def on_message1(client, userdata, msg):
     global message
     global dice
+    global aflag
+    global mflag
+    global dflag
     data = msg.payload.decode("utf-8")
     Ardread()
-    if Ardread() > 50:
+    if Ardread() > 50 and aflag:
         message = {"tagId": "10", "value": "0"}
-    else:
+        aflag = False
+        mflag = False
+    elif Ardread() <= 50 and aflag == False:
         message = {"tagId": "10", "value": "1"}
+        aflag = True
+        mflag = False
+    global data_dict
     data_dict = json.loads(msg.payload)
     predice = dice
     dice = data_dict["Wrapper"][38]["value"]
     x = data_dict["Wrapper"][34]["value"]
     y = data_dict["Wrapper"][35]["value"]
-    print(x, y)
     # 메시지를 JSON 형식으로 만듭니다.
+    print(x, y)
     dice = int(dice)
     # POST 요청에서 데이터 받아오기
     if dice > 0 and dice < 7 and dice != predice:
@@ -75,12 +87,18 @@ def on_message1(client, userdata, msg):
         sql = """INSERT INTO dice (num) VALUES (%s)"""
         cursor.execute(sql, dice)
         db.commit()  # 데이터베이스에 변경 사항을 반영합니다.
-    if dice >= 2 and dice <= 5:
+    if dice >= 2 and dice <= 5 and dflag == False:
         message = {"tagId": "11", "value": "1"}
-    elif dice == 1 or dice == 6:
+        dflag = True
+        mflag = False
+    elif dice == 1 or dice == 6 and dflag:
         message = {"tagId": "11", "value": "0"}
+        dflag = False
+        mflag = False
     # JSON 메시지를 문자열로 변환하여 발행합니다.
-    client.publish("edukit/control", json.dumps(message), qos=1)
+    if mflag == False:
+        mflag = True
+        client.publish("edukit/control", json.dumps(message), qos=1)
 
 
 def on_message2(client, userdata, msg):
