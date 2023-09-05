@@ -26,7 +26,7 @@ def Decode(A):
 def Ardread():
     if ARD.readable():
         code = Decode(ARD.readline())
-        print(code)
+        # print(code)
         return code
     else:
         print("읽기 실패")
@@ -62,6 +62,9 @@ def on_message1(client, userdata, msg):
     data_dict = json.loads(msg.payload)
     predice = dice
     dice = data_dict["Wrapper"][38]["value"]
+    x = data_dict["Wrapper"][34]["value"]
+    y = data_dict["Wrapper"][35]["value"]
+    print(x, y)
     # 메시지를 JSON 형식으로 만듭니다.
     dice = int(dice)
     # POST 요청에서 데이터 받아오기

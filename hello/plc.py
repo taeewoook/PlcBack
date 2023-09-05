@@ -16,6 +16,10 @@ def on_disconnect(client, userdata, flags, rc=0):
 def on_message(client, userdata, msg):
     data = msg.payload.decode("utf-8")
     print(str(msg.payload.decode("utf-8")))
+    # 메시지를 JSON 형식으로 만듭니다.
+    message = {"tagId": "11", "value": "1"}
+    # JSON 메시지를 문자열로 변환하여 발행합니다.
+    client.publish("edukit/control", json.dumps(message), qos=1)
 
 
 # 새로운 클라이언트 생성
@@ -27,9 +31,9 @@ client.on_message = on_message
 # address : localhost, port: 1883 에 연결
 client.connect("localhost", 1883)
 
-# 메시지를 JSON 형식으로 만듭니다.
-message = {"tagId": "11", "value": "1"}
-# JSON 메시지를 문자열로 변환하여 발행합니다.
-client.publish("edukit/control", json.dumps(message), qos=1)
+# # 메시지를 JSON 형식으로 만듭니다.
+# message = {"tagId": "11", "value": "1"}
+# # JSON 메시지를 문자열로 변환하여 발행합니다.
+# client.publish("edukit/control", json.dumps(message), qos=1)
 
 client.loop_forever()

@@ -120,14 +120,6 @@ while True:
                 clientSocket = socket(AF_INET, SOCK_STREAM)
                 clientSocket.connect(ADDR)
                 print("Connection PLC Success!")
-                # message = {}
-                # if num <= 3:
-                #    message = {"tagId": "11", "value": "0"}
-                # else:
-                #    message = {"tagId": "11", "value": "1"}
-                # 딕셔너리를 JSON 문자열로 직렬화
-                # json_message = json.dumps(message)
-                # clientSocket.send(json_message.encode("utf-8"))
                 clientSocket.send(socketTxData + num_little)
                 clientSocket.close()
             except Exception as e:
