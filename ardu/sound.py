@@ -39,13 +39,16 @@ while True:
     text = ""
     # 마이크
     with sr.Microphone() as source:
+        print("말해보셈", flush=True)
         audio = r.listen(source)
+        print("확인", flush=True)
 
     try:
         text = r.recognize_google(audio, language="ko-KR")
-        print("You Said: {}".format(text))
+        print("You Said: {}".format(text), flush=True)
     except:
-        print("Sorry, could not recognize you voice.")
+        print("인식못함", flush=True)
+
     a = 0
     b = 0
     print(text)
@@ -74,5 +77,3 @@ while True:
         message = {"tagId": "%d" % a, "value": "%d" % b}
         # JSON 메시지를 문자열로 변환하여 발행합니다.
         client.publish("edukit/control", json.dumps(message), qos=1)
-
-        # client.loop_forever()
