@@ -1,5 +1,17 @@
 import paho.mqtt.client as mqtt
 import json
+from datetime import datetime, timedelta
+import pymysql
+
+# 데이터베이스 접속 설정
+db = pymysql.connect(
+    host="localhost",
+    port=3306,
+    user="root",
+    passwd="1234",
+    db="plc",
+    charset="utf8",
+)
 
 
 def on_connect(client, userdata, flags, rc):
@@ -18,12 +30,25 @@ def on_subscribe(client, userdata, mid, granted_qos):
 
 
 def on_message(client, userdata, msg):
+    global trackflag
     data = msg.payload.decode("utf-8")
     data_dict = json.loads(msg.payload)
-    dice = data_dict["Wrapper"][38]["value"]
-    print(dice)  # dice 번호
+    dice = data_dict["Wrapper"][2]["name"]
+    # print(dice)  # dice 번호
+    if data_dict["Wrapper"][2]["value"] and trackflag:
+        print("ok")
+        trackflag = False
+        cursor = db.cursor()
+        start_time = datetime.now()
+        end_time = start_time + timedelta(seconds=23)
+        sql = "INSERT INTO track (start, end) VALUES (%s, %s)"
+        cursor.execute(sql, (start_time, end_time))
+        db.commit()
+    if data_dict["Wrapper"][2]["value"] == False:
+        trackflag = True
 
 
+trackflag = True
 # 새로운 클라이언트 생성
 client = mqtt.Client()
 # 콜백 함수 설정 on_connect(브로커에 접속), on_disconnect(브로커에 접속중료), on_subscribe(topic 구독),

@@ -50,7 +50,7 @@ client.connect("localhost", 1883)
 
 while True:
     Ardread()
-    if Ardread() > 50:
+    if Ardread() > 70:
         # 메시지를 JSON 형식으로 만듭니다.
         message = {"tagId": "11", "value": "0"}
         # JSON 메시지를 문자열로 변환하여 발행합니다.
