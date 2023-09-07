@@ -1,0 +1,62 @@
+import sys
+
+sys.path.append("/opt/homebrew/lib/python3.9/site-packages")
+import paho.mqtt.client as mqtt
+import json
+import pymysql
+from datetime import datetime
+
+db = pymysql.connect(
+    host="localhost",
+    port=3306,
+    user="root",
+    passwd="1234",
+    db="PLC",
+    charset="utf8",
+)
+
+
+def on_connect(client, userdata, flags, rc):
+    if rc == 0:
+        print("connected OK")
+    else:
+        print("Bad connection Returned code=", rc)
+
+
+def on_disconnect(client, userdata, flags, rc=0):
+    print(str(rc))
+
+
+def on_message(client, userdata, msg):
+    data = msg.payload.decode("utf-8")
+    # print(str(msg.payload.decode("utf-8")))
+    data_dict = json.loads(msg.payload)
+    Datetime = datetime.strptime(
+        data_dict["Wrapper"][40]["value"], "%Y-%m-%dT%H:%M:%S.%fZ"
+    )
+    Start = data_dict["Wrapper"][0]["value"]
+    No1Action = data_dict["Wrapper"][2]["value"]
+    No2InPoint = data_dict["Wrapper"][18]["value"]
+    No3Motor1 = int(data_dict["Wrapper"][34]["value"])
+    No3Motor2 = int(data_dict["Wrapper"][35]["value"])
+    Dicevalue = int(data_dict["Wrapper"][38]["value"])
+    cursor = db.cursor()
+    print(Datetime, Start, No1Action, No2InPoint, No3Motor1, No3Motor2, Dicevalue)
+    sql = """INSERT INTO record (Datetime,Start,No1Action,No2InPoint,No3Motor1,No3Motor2,Dicevalue) values (%s,%s,%s,%s,%s,%s,%s)"""
+    cursor.execute(
+        sql, (Datetime, Start, No1Action, No2InPoint, No3Motor1, No3Motor2, Dicevalue)
+    )
+    db.commit()
+
+
+# 새로운 클라이언트 생성
+client = mqtt.Client()
+# 콜백 함수 설정 on_connect(브로커에 접속), on_disconnect(브로커에 접속중료), on_message(발행된 메세지가 들어왔을 때)
+client.on_connect = on_connect
+client.on_disconnect = on_disconnect
+client.on_message = on_message
+# address : localhost, port: 1883 에 연결
+client.connect("192.168.0.128", 1883)
+client.subscribe("edukit/robotarm", 1)
+
+client.loop_forever()
