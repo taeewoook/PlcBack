@@ -1,8 +1,7 @@
-from flask import Flask, jsonify, request
+# import sys
+# sys.path.append('/opt/homebrew/lib/python3.9/site-packages')
 import pymysql
-import schedule
-import time
-import requests
+from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
@@ -12,58 +11,56 @@ db = pymysql.connect(
     port=3306,
     user="root",
     passwd="1234",
-    db="plc",
+    db="PLC",
     charset="utf8",
 )
 
-
-@app.route("/")
+@app.route("/dice")
 def index():
     # 데이터베이스에서 데이터 가져오기
+    start = request.args.get('start')
+    end = request.args.get('end')
     cursor = db.cursor()
-    sql = """SELECT * FROM dice"""
-    cursor.execute(sql)
+    sql = """SELECT * FROM dice where created_at between (%s) and (%s)"""
+    cursor.execute(sql,(start,end))
     result = cursor.fetchall()
-
     # 데이터를 JSON 형식으로 변환하여 반환
-    print(result)
     data = [{"id": row[0], "num": row[1], "created_at": row[2]} for row in result]
     return jsonify(data)
 
+@app.route("/track")
+def track():
+   id = request.args.get('id')
+   cursor = db.cursor()
+   sql = """SELECT * FROM track where id = (%s)"""
+   cursor.execute(sql,id)
+   result = cursor.fetchone()
+   data = [{"id": result[0], "start": result[1], "end": result[2]}]
+   return jsonify(data)
 
-@app.route("/date")
-def find():
-    data = request.json
+@app.route("/log")
+def log():
+    start = request.args.get('start')
+    end = request.args.get('end')
     cursor = db.cursor()
-    sql = """SELECT * FROM dice
-WHERE created_at BETWEEN (%s) and (%s) order by created_at ASC;"""
-    cursor.execute(sql, (data["start"], data["end"]))
-    result = cursor.fetchall()
-    data = [
-        {
-            "id": row[0],
-            "num": row[1],
-            "created_at": row[2].strftime("%Y-%m-%d %H:%M:%S"),
-        }
-        for row in result
-    ]
-    print(data)
+    sql = """SELECT * FROM record where Datetime between (%s) and (%s)"""
+    cursor.execute(sql,(start,end))
+    row = cursor.fetchall()
+    data = [{"id":result[0], "Datetime":result[1],
+             "Start":result[2],"No1Action":result[3],
+             "No2InPoint":result[4],"No3Motor1":result[5],
+             "No3Motor2":result[6],"Dicevalue":result[7]} for result in row]
     return jsonify(data)
 
-
-@app.route("/dice_insert", methods=["POST"])
-def insert():
-    # POST 요청에서 데이터 받아오기
-    data = request.json  # JSON 형식의 데이터를 받아옵니다.
-
-    # 데이터베이스에 데이터 삽입
+@app.route("/radiation")
+def radiation():
     cursor = db.cursor()
-    sql = """INSERT INTO dice (num) VALUES (%s)"""
-    cursor.execute(sql, (data["num"]))
-    db.commit()  # 데이터베이스에 변경 사항을 반영합니다.
-
-    return jsonify({"message": "데이터가 삽입되었습니다."})
-
+    sql = """SELECT * from radiation"""
+    cursor.execute(sql)
+    result = cursor.fetchall()
+    data = [{"id": row[0], "figure": row[1], "created_at":row[2]} for row in result]
+    return jsonify(data)
 
 if __name__ == "__main__":
     app.run(debug=True)
+
