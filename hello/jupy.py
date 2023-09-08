@@ -29,7 +29,7 @@ detector = cv2.SimpleBlobDetector_create(params)
 
 while True:
     ret, frame = cap.read()
-    print(cap.read())
+    # print(cap.read())
     frame_blurred = cv2.GaussianBlur(frame, Gaussian_ksize, 1)
     frame_gray = cv2.cvtColor(frame_blurred, cv2.COLOR_BGR2GRAY)
     frame_canny = cv2.Canny(
