@@ -1,9 +1,14 @@
-# import sys
-# sys.path.append('/opt/homebrew/lib/python3.9/site-packages')
+import sys
+
+sys.path.append("/opt/homebrew/lib/python3.9/site-packages")
+import logging
 import pymysql
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, make_response
+from flask_cors import CORS
 
 app = Flask(__name__)
+cors = CORS(app, resources={r"*": {"origins": "*"}})
+logging.getLogger("flask_cors").level = logging.DEBUG
 
 # 데이터베이스 접속 설정
 db = pymysql.connect(
@@ -14,6 +19,11 @@ db = pymysql.connect(
     db="PLC",
     charset="utf8",
 )
+
+
+@app.route("/")
+def home():
+    return "Hello World"
 
 
 @app.route("/dice")
@@ -38,6 +48,17 @@ def track():
     cursor.execute(sql, id)
     result = cursor.fetchone()
     data = [{"id": result[0], "start": result[1], "end": result[2]}]
+    return jsonify(data)
+
+
+@app.route("/track/all")
+def track_all():
+    cursor = db.cursor()
+    sql = """SELECT * FROM track"""
+    cursor.execute(sql)
+    row = cursor.fetchall()
+
+    data = [{"id": result[0], "start": result[1], "end": result[2]} for result in row]
     return jsonify(data)
 
 
@@ -112,5 +133,34 @@ def tracklog():
     return jsonify(data)
 
 
+@app.route("/page")
+def page():
+    cursor = db.cursor()
+    sql = """select count(*) from record"""
+    cursor.execute(sql)
+    count = cursor.fetchone()[0]
+    data = {"count": f"{count}", "results": [], "next": None}
+    num = request.args.get("num")
+    sql = """select * from record where id <= (select count(*) from record) - (50 * (%s)) order by id desc limit 50"""
+    cursor.execute(sql, num)
+    row = cursor.fetchall()
+    for i in range(len(row)):
+        data["results"].append(
+            {
+                "id": row[i][0],
+                "Datetime": row[i][1],
+                "Start": row[i][2],
+                "No1Action": row[i][3],
+                "No2InPoint": row[i][4],
+                "No3Motor1": row[i][5],
+                "No3Motor2": row[i][6],
+                "Dicevalue": row[i][7],
+            }
+        )
+    if (int(num) + 1) * 50 < count:
+        data["next"] = f"http://192.168.0.38:5001/page?num={int(num) + 1}"
+    return jsonify(data)
+
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5001, debug=True)
