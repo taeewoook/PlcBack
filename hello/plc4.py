@@ -4,7 +4,7 @@ sys.path.append("/opt/homebrew/lib/python3.9/site-packages")
 import paho.mqtt.client as mqtt
 import json
 import pymysql
-from datetime import datetime
+from datetime import datetime, timedelta
 
 db = pymysql.connect(
     host="localhost",
@@ -27,10 +27,28 @@ def on_disconnect(client, userdata, flags, rc=0):
     print(str(rc))
 
 
+trackflag = True
+
+
 def on_message(client, userdata, msg):
+    global trackflag
     data = msg.payload.decode("utf-8")
     # print(str(msg.payload.decode("utf-8")))
     data_dict = json.loads(msg.payload)
+    if data_dict["Wrapper"][2]["value"] and trackflag:
+        print("ok")
+        trackflag = False
+        dataTime = datetime.strptime(
+            data_dict["Wrapper"][40]["value"], "%Y-%m-%dT%H:%M:%S.%fZ"
+        )
+        start_time = dataTime
+        end_time = start_time + timedelta(seconds=25)
+        cursor = db.cursor()
+        sql = "INSERT INTO track (start, end) VALUES (%s, %s)"
+        cursor.execute(sql, (start_time, end_time))
+        db.commit()
+    elif data_dict["Wrapper"][2]["value"] == False:
+        trackflag = True
     Datetime = datetime.strptime(
         data_dict["Wrapper"][40]["value"], "%Y-%m-%dT%H:%M:%S.%fZ"
     )

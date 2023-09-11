@@ -168,12 +168,14 @@ def Ardread():
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
         print("connected OK")
+        client.on_subscribe = on_subscribe
     else:
         print("Bad connection Returned code=", rc)
 
 
 def on_disconnect(client, userdata, flags, rc=0):
-    print(str(rc))
+    print("범인2")
+    return rc
 
 
 def on_subscribe(client, userdata, mid, granted_qos):
@@ -184,14 +186,12 @@ message = {"tagId": "12", "value": "1"}
 dice = 0
 
 mflag = True
-trackflag = True
 
 
 def on_message1(client, userdata, msg):
     global mflag
     global message
     global dice
-    global trackflag
     global radiation
     radiation = 0
     data = msg.payload.decode("utf-8")
@@ -203,18 +203,6 @@ def on_message1(client, userdata, msg):
     #     message = {"tagId": "11", "value": "1"}
     #     client.publish("edukit/control", json.dumps(message), qos=1)
     data_dict = json.loads(msg.payload)
-    if data_dict["Wrapper"][2]["value"] and trackflag:
-        print("ok")
-        trackflag = False
-        dataTime = datetime.strptime(
-            data_dict["Wrapper"][40]["value"], "%Y-%m-%dT%H:%M:%S.%fZ"
-        )
-        start_time = dataTime
-        end_time = start_time + timedelta(seconds=25)
-        sql = "INSERT INTO track (start, end) VALUES (%s, %s)"
-        cursor.execute(sql, (start_time, end_time))
-    if data_dict["Wrapper"][2]["value"] == False:
-        trackflag = True
     predice = dice
     dice = dice_recognition()
     # 메시지를 JSON 형식으로 만듭니다.
@@ -231,6 +219,7 @@ def on_message1(client, userdata, msg):
         sqlradi = """INSERT INTO radiation (figure,created_at) VALUES (%s,%s)"""
         cursor.execute(sql, dice)
         cursor.execute(sqlradi, (radiation, stamp))
+        print("범인1")
     if dice >= 2 and dice <= 5 and radiation < 50:
         message = {"tagId": "11", "value": "1"}
         mflag = False
@@ -251,16 +240,16 @@ def on_message2(client, userdata, msg):
 
 # 새로운 클라이언트 생성
 client = mqtt.Client()
+if client.on_disconnect == 0:
+    client.subscribe("edukit/robotarm", 1)
 # 콜백 함수 설정 on_connect(브로커에 접속), on_disconnect(브로커에 접속중료), on_subscribe(topic 구독),
 # on_message(발행된 메세지가 들어왔을 때)
 client.on_connect = on_connect
-client.on_disconnect = on_disconnect
-client.on_subscribe = on_subscribe
 client.on_message = on_message1
 # client.on_message = on_message2
 # address : localhost, port: 1883 에 연결
 client.connect("localhost", 1883)
 # common topic 으로 메세지 발행
 client.subscribe("edukit/robotarm", 1)
-
+client.on_disconnect = on_disconnect
 client.loop_forever()
