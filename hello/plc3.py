@@ -147,22 +147,22 @@ db = pymysql.connect(
 )
 
 
-# PORT = "COM8"
-# BaudRate = 9600
-# ARD = serial.Serial(PORT, BaudRate)
+PORT = "COM8"
+BaudRate = 9600
+ARD = serial.Serial(PORT, BaudRate)
 
 
-# def Decode(A):
-#     return int(A[0:3])
+def Decode(A):
+    return int(A[0:3])
 
 
-# def Ardread():
-#     if ARD.readable():
-#         code = Decode(ARD.readline())
-#         print(code)
-#         return code
-#     else:
-#         print("읽기 실패")
+def Ardread():
+    if ARD.readable():
+        code = Decode(ARD.readline())
+        print(code)
+        return code
+    else:
+        print("읽기 실패")
 
 
 def on_connect(client, userdata, flags, rc):
@@ -218,19 +218,21 @@ def on_message1(client, userdata, msg):
         dflag = False
     if dice > 0 and dice < 7 and not dflag:
         dflag = True
-        # radiation = Ardread()
+        radiation = Ardread()
         stamp = datetime.strptime(
             data_dict["Wrapper"][40]["value"], "%Y-%m-%dT%H:%M:%S.%fZ"
         )
         # 데이터베이스에 데이터 삽입
         sql = """INSERT INTO dice (num,TrackId) VALUES (%s,%s)"""
-        # sqlradi = """INSERT INTO radiation (figure,created_at) VALUES (%s,%s)"""
+        sqlradi = (
+            """INSERT INTO radiation (figure,created_at,TrackId) VALUES (%s,%s,%s)"""
+        )
         cursor.execute(sql, (dice, trackid))
-        # cursor.execute(sqlradi, (radiation, stamp))
-    if dice >= 2 and dice <= 5 and radiation < 50:
+        cursor.execute(sqlradi, (radiation, stamp, trackid))
+    if dice >= 2 and dice <= 5 and radiation < 65:
         message = {"tagId": "11", "value": "1"}
         mflag = False
-    elif dice == 1 or dice == 6 or radiation >= 50:
+    elif dice == 1 or dice == 6 or radiation >= 65:
         message = {"tagId": "11", "value": "0"}
         mflag = False
     # JSON 메시지를 문자열로 변환하여 발행합니다.
