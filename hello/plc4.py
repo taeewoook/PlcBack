@@ -40,7 +40,7 @@ def on_message(client, userdata, msg):
             data_dict["Wrapper"][40]["value"], "%Y-%m-%dT%H:%M:%S.%fZ"
         )
         start_time = dataTime
-        end_time = start_time + timedelta(seconds=31)
+        end_time = start_time + timedelta(seconds=25)
         cursor = db.cursor()
         sql = "INSERT INTO track (start, end) VALUES (%s, %s)"
         cursor.execute(sql, (start_time, end_time))
