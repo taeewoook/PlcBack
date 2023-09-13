@@ -235,6 +235,9 @@ def on_message1(client, userdata, msg):
         )
         cursor.execute(sql, (dice, trackid))
         cursor.execute(sqlradi, (radiation, stamp, trackid))
+        sql = """SELECT * FROM misconduct where date = (%s)"""
+        cursor.execute(sql,datetime.today())
+        row = cursor.fetchone()
     if dice >= 2 and dice <= 5 and radiation < 65:
         message = {"tagId": "11", "value": "1"}
         # update 테이블명 set 컬럼명 = 컬럼명+ 1 where 컬럼명 = 값
