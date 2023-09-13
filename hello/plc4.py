@@ -1,6 +1,3 @@
-import sys
-
-sys.path.append("/opt/homebrew/lib/python3.9/site-packages")
 import paho.mqtt.client as mqtt
 import json
 import pymysql
@@ -35,6 +32,7 @@ def on_message(client, userdata, msg):
     data = msg.payload.decode("utf-8")
     # print(str(msg.payload.decode("utf-8")))
     data_dict = json.loads(msg.payload)
+    TrackId = None
     if data_dict["Wrapper"][2]["value"] and trackflag:
         print("ok")
         trackflag = False
@@ -42,7 +40,7 @@ def on_message(client, userdata, msg):
             data_dict["Wrapper"][40]["value"], "%Y-%m-%dT%H:%M:%S.%fZ"
         )
         start_time = dataTime
-        end_time = start_time + timedelta(seconds=25)
+        end_time = start_time + timedelta(seconds=31)
         cursor = db.cursor()
         sql = "INSERT INTO track (start, end) VALUES (%s, %s)"
         cursor.execute(sql, (start_time, end_time))
@@ -52,17 +50,36 @@ def on_message(client, userdata, msg):
     Datetime = datetime.strptime(
         data_dict["Wrapper"][40]["value"], "%Y-%m-%dT%H:%M:%S.%fZ"
     )
+    sql = "SELECT * FROM track order by id desc limit 1"
+    cursor = db.cursor()
+    cursor.execute(sql)
+    r = cursor.fetchone()
     Start = data_dict["Wrapper"][0]["value"]
     No1Action = data_dict["Wrapper"][2]["value"]
     No2InPoint = data_dict["Wrapper"][18]["value"]
     No3Motor1 = int(data_dict["Wrapper"][34]["value"])
     No3Motor2 = int(data_dict["Wrapper"][35]["value"])
     Dicevalue = int(data_dict["Wrapper"][38]["value"])
+    if r:
+        if Datetime >= r[1] and Datetime <= r[2]:
+            TrackId = r[0]
     cursor = db.cursor()
-    print(Datetime, Start, No1Action, No2InPoint, No3Motor1, No3Motor2, Dicevalue)
-    sql = """INSERT INTO record (Datetime,Start,No1Action,No2InPoint,No3Motor1,No3Motor2,Dicevalue) values (%s,%s,%s,%s,%s,%s,%s)"""
+    print(
+        Datetime, Start, No1Action, No2InPoint, No3Motor1, No3Motor2, Dicevalue, TrackId
+    )
+    sql = """INSERT INTO record (Datetime,Start,No1Action,No2InPoint,No3Motor1,No3Motor2,Dicevalue,TrackId) values (%s,%s,%s,%s,%s,%s,%s,%s)"""
     cursor.execute(
-        sql, (Datetime, Start, No1Action, No2InPoint, No3Motor1, No3Motor2, Dicevalue)
+        sql,
+        (
+            Datetime,
+            Start,
+            No1Action,
+            No2InPoint,
+            No3Motor1,
+            No3Motor2,
+            Dicevalue,
+            TrackId,
+        ),
     )
     db.commit()
 

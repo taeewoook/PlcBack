@@ -18,7 +18,7 @@ ADDR = (HOST, PORT)
 
 
 def dice_recognition():
-    cap = cv2.VideoCapture(1)  # 0 or 1
+    cap = cv2.VideoCapture(0)  # 0 or 1
     readings = [-1, -1]
     display = [0, 0]
 
@@ -147,22 +147,22 @@ db = pymysql.connect(
 )
 
 
-PORT = "COM8"
-BaudRate = 9600
-ARD = serial.Serial(PORT, BaudRate)
+# PORT = "COM8"
+# BaudRate = 9600
+# ARD = serial.Serial(PORT, BaudRate)
 
 
-def Decode(A):
-    return int(A[0:3])
+# def Decode(A):
+#     return int(A[0:3])
 
 
-def Ardread():
-    if ARD.readable():
-        code = Decode(ARD.readline())
-        print(code)
-        return code
-    else:
-        print("읽기 실패")
+# def Ardread():
+#     if ARD.readable():
+#         code = Decode(ARD.readline())
+#         print(code)
+#         return code
+#     else:
+#         print("읽기 실패")
 
 
 def on_connect(client, userdata, flags, rc):
@@ -174,7 +174,6 @@ def on_connect(client, userdata, flags, rc):
 
 
 def on_disconnect(client, userdata, flags, rc=0):
-    print("범인2")
     return rc
 
 
@@ -186,6 +185,7 @@ message = {"tagId": "12", "value": "1"}
 dice = 0
 
 mflag = True
+dflag = True
 
 
 def on_message1(client, userdata, msg):
@@ -193,9 +193,16 @@ def on_message1(client, userdata, msg):
     global message
     global dice
     global radiation
+    global dflag
     radiation = 0
+    trackid = None
+    sql = "Select * from track order by id desc limit 1"
     data = msg.payload.decode("utf-8")
     cursor = db.cursor()
+    cursor.execute(sql)
+    r = cursor.fetchone()
+    if r:
+        trackid = r[0]
     # if Ardread() > 50:
     #     message = {"tagId": "11", "value": "0"}
     #     client.publish("edukit/control", json.dumps(message), qos=1)
@@ -203,23 +210,23 @@ def on_message1(client, userdata, msg):
     #     message = {"tagId": "11", "value": "1"}
     #     client.publish("edukit/control", json.dumps(message), qos=1)
     data_dict = json.loads(msg.payload)
-    predice = dice
     dice = dice_recognition()
     # 메시지를 JSON 형식으로 만듭니다.
     # dice = int(dice)
     # POST 요청에서 데이터 받아오기
-    if dice > 0 and dice < 7 and dice != predice:
-        print(dice)
-        radiation = Ardread()
+    if dice == 0:
+        dflag = False
+    if dice > 0 and dice < 7 and not dflag:
+        dflag = True
+        # radiation = Ardread()
         stamp = datetime.strptime(
             data_dict["Wrapper"][40]["value"], "%Y-%m-%dT%H:%M:%S.%fZ"
         )
         # 데이터베이스에 데이터 삽입
-        sql = """INSERT INTO dice (num) VALUES (%s)"""
-        sqlradi = """INSERT INTO radiation (figure,created_at) VALUES (%s,%s)"""
-        cursor.execute(sql, dice)
-        cursor.execute(sqlradi, (radiation, stamp))
-        print("범인1")
+        sql = """INSERT INTO dice (num,TrackId) VALUES (%s,%s)"""
+        # sqlradi = """INSERT INTO radiation (figure,created_at) VALUES (%s,%s)"""
+        cursor.execute(sql, (dice, trackid))
+        # cursor.execute(sqlradi, (radiation, stamp))
     if dice >= 2 and dice <= 5 and radiation < 50:
         message = {"tagId": "11", "value": "1"}
         mflag = False

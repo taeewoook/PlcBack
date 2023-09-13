@@ -11,7 +11,7 @@ PORT = 2004
 BUFSIZE = 1024
 ADDR = (HOST, PORT)
 
-cap = cv2.VideoCapture(1)  # 0 or 1
+cap = cv2.VideoCapture(0)  # 0 or 1
 
 readings = [-1, -1]
 display = [0, 0]
