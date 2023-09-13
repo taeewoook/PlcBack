@@ -147,22 +147,22 @@ db = pymysql.connect(
 )
 
 
-PORT = "COM8"
-BaudRate = 9600
-ARD = serial.Serial(PORT, BaudRate)
+# PORT = "COM8"
+# BaudRate = 9600
+# ARD = serial.Serial(PORT, BaudRate)
 
 
-def Decode(A):
-    return int(A[0:3])
+# def Decode(A):
+#     return int(A[0:3])
 
 
-def Ardread():
-    if ARD.readable():
-        code = Decode(ARD.readline())
-        print(code)
-        return code
-    else:
-        print("읽기 실패")
+# def Ardread():
+#     if ARD.readable():
+#         code = Decode(ARD.readline())
+#         print(code)
+#         return code
+#     else:
+#         print("읽기 실패")
 
 
 def on_connect(client, userdata, flags, rc):
@@ -189,16 +189,22 @@ dflag = True
 
 
 def on_message1(client, userdata, msg):
+    today = datetime.today().strftime("%Y-%m-%d")
     global mflag
     global message
     global dice
     global radiation
     global dflag
     radiation = 0
+    cursor = db.cursor()
+    sql = """INSERT INTO misconduct (date,normal,defect)
+    SELECT current_date(),0,0
+    from dual
+    WHERE NOT EXISTS ( SELECT * FROM misconduct WHERE date = (%s))"""
+    cursor.execute(sql,today)
     trackid = None
     sql = "Select * from track order by id desc limit 1"
     data = msg.payload.decode("utf-8")
-    cursor = db.cursor()
     cursor.execute(sql)
     r = cursor.fetchone()
     if r:
@@ -218,22 +224,28 @@ def on_message1(client, userdata, msg):
         dflag = False
     if dice > 0 and dice < 7 and not dflag:
         dflag = True
-        radiation = Ardread()
+        # radiation = Ardread()
         stamp = datetime.strptime(
             data_dict["Wrapper"][40]["value"], "%Y-%m-%dT%H:%M:%S.%fZ"
         )
         # 데이터베이스에 데이터 삽입
         sql = """INSERT INTO dice (num,TrackId) VALUES (%s,%s)"""
-        sqlradi = (
-            """INSERT INTO radiation (figure,created_at,TrackId) VALUES (%s,%s,%s)"""
-        )
+        sqlradi = """INSERT INTO radiation (figure,created_at,TrackId) VALUES (%s,%s,%s)"""
         cursor.execute(sql, (dice, trackid))
-        cursor.execute(sqlradi, (radiation, stamp, trackid))
-    if dice >= 2 and dice <= 5 and radiation < 65:
+        cursor.execute(sqlradi, (radiation, stamp,trackid))
+        sql = """SELECT * FROM misconduct where date = (%s)"""
+        cursor.execute(sql,datetime.today())
+        row = cursor.fetchone()
+    if dice >= 2 and dice <= 5 and radiation < 50:
         message = {"tagId": "11", "value": "1"}
+        #update 테이블명 set 컬럼명 = 컬럼명+ 1 where 컬럼명 = 값
+        sql = """UPDATE misconduct set noraml = (%s) where date = (%s)"""
+        cursor.execute(sql,(int(row[1]) + 1,row[0]))
         mflag = False
-    elif dice == 1 or dice == 6 or radiation >= 65:
+    elif dice == 1 or dice == 6 or radiation >= 50:
         message = {"tagId": "11", "value": "0"}
+        sql = """UPDATE misconduct set defect = (%s) where date = (%s)"""
+        cursor.execute(sql, (int(row[2]) + 1, row[0]))
         mflag = False
     # JSON 메시지를 문자열로 변환하여 발행합니다.
     if mflag == False:
