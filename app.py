@@ -172,7 +172,7 @@ def tracklog():
         track_id = request.args.get("track_id", type=int)  # 클라이언트에서 트랙 ID를 받아옵니다.
         # 트랙의 시작 및 종료 시간을 가져옵니다.
         # 트랙의 시작 및 종료 시간을 기반으로 레코드를 가져옵니다.
-        data = {"results": [], "dice": None}
+        data = {"results": [], "dice": None, "radiation":None}
         if not track_id:
             return jsonify(data)
         cursor = db.cursor()
@@ -197,6 +197,11 @@ def tracklog():
         row = cursor.fetchone()
         if row:
             data["dice"] = row[1]
+        sql = "SELECT * FROM radiation WHERE TrackId = %s"
+        cursor.execute(sql,track_id)
+        row = cursor.fetchone()
+        if row:
+            data["radiation"] = row[1]
         return jsonify(data)
 
 
