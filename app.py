@@ -172,7 +172,7 @@ def tracklog():
         track_id = request.args.get("track_id", type=int)  # 클라이언트에서 트랙 ID를 받아옵니다.
         # 트랙의 시작 및 종료 시간을 가져옵니다.
         # 트랙의 시작 및 종료 시간을 기반으로 레코드를 가져옵니다.
-        data = {"results": [], "dice": None, "radiation": None}
+        data = {"results": [], "dice": None, "radiation":None}
         if not track_id:
             return jsonify(data)
         cursor = db.cursor()
@@ -196,17 +196,51 @@ def tracklog():
         cursor.execute(sql, track_id)
         row = cursor.fetchone()
         if row:
-            if row[1] == 1:
-                data["dice"] = "규격미달"
-            elif row[1] == 6:
-                data["dice"] = "규격초과"
-            else:
-                data["dice"] = "정상"
+            data["dice"] = row[1]
         sql = "SELECT * FROM radiation WHERE TrackId = %s"
-        cursor.execute(sql, track_id)
+        cursor.execute(sql,track_id)
         row = cursor.fetchone()
         if row:
             data["radiation"] = row[1]
+        return jsonify(data)
+
+@app.route("/misconduct")
+def misconduct():
+    with lock:
+        start = request.args.get("start")
+        end = request.args.get("end")
+        cursor = db.cursor()
+        cursor.execute("SELECT * FROM misconduct WHERE date >= %s and date <= %s", (start,end))
+        row = cursor.fetchall()
+        data = {"results": []}
+        for i in range(len(row)):
+            data["results"].append({"Datetime" : datetime.strftime(row[i][0], "%Y/%m/%d"), "normal": row[i][1],"defect":row[i][2]})
+        return jsonify(data)
+
+@app.route("/malfunction")
+def malfuntion():
+    with lock:
+        start = request.args.get("start")
+        end = request.args.get("end")
+        cursor = db.cursor()
+        cursor.execute("SELECT * FROM malfunction WHERE date >= %s and date <= %s", (start,end))
+        row = cursor.fetchall()
+        data = {"results": []}
+        for i in range(len(row)):
+            data["results"].append({"Datetime" : datetime.strftime(row[i][0], "%Y/%m/%d"), "normal": row[i][1],"defect":row[i][2]})
+        return jsonify(data)
+
+@app.route("/hastrack")
+def malfunction():
+    with lock:
+        start = request.args.get("start")
+        end = request.args.get("end")
+        cursor = db.cursor()
+        cursor.execute("SELECT * FROM hastrack WHERE date >= %s and date <= %s", (start,end))
+        row = cursor.fetchall()
+        data = {"results": []}
+        for i in range(len(row)):
+            data["results"].append({"Datetime" : datetime.strftime(row[i][0], "%Y/%m/%d"), "normal": row[i][1],"defect":row[i][2]})
         return jsonify(data)
 
 
