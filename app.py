@@ -327,6 +327,18 @@ def dicelog():
             )
         return jsonify(data)
 
+@app.route("/operation")
+def operation():
+    with lock:
+        start = request.args.get("start")
+        end = request.args.get("end")
+        cursor = db.cursor()
+        cursor.execute("SELECT * FROM operation WHERE date >= %s and date <= %s orderby date",(start,end))
+        row = cursor.fetchall()
+        data = {"results": []}
+        for i in range(len(row)):
+            data["results"].append({"Datetime" : datetime.strftime(row[i][0], "%Y/%m/%d"), "first": row[i][1],"second":row[i][2],"third":row[i][3]})
+        return jsonify(data)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001, debug=True)
