@@ -217,7 +217,8 @@ def misconduct():
         end = request.args.get("end")
         cursor = db.cursor()
         cursor.execute(
-            "SELECT * FROM misconduct WHERE date >= %s and date <= %s", (start, end)
+            "SELECT * FROM misconduct WHERE date >= %s and date <= %s order by date",
+            (start, end),
         )
         row = cursor.fetchall()
         data = {"results": []}
@@ -239,7 +240,8 @@ def malfuntion():
         end = request.args.get("end")
         cursor = db.cursor()
         cursor.execute(
-            "SELECT * FROM malfunction WHERE date >= %s and date <= %s", (start, end)
+            "SELECT * FROM malfunction WHERE date >= %s and date <= %s order by date",
+            (start, end),
         )
         row = cursor.fetchall()
         data = {"results": []}
@@ -261,7 +263,8 @@ def malfunction():
         end = request.args.get("end")
         cursor = db.cursor()
         cursor.execute(
-            "SELECT * FROM hastrack WHERE date >= %s and date <= %s", (start, end)
+            "SELECT * FROM hastrack WHERE date >= %s and date <= %s order by date",
+            (start, end),
         )
         row = cursor.fetchall()
         data = {"results": []}
@@ -295,8 +298,9 @@ def gaslog():
         for i in range(len(row)):
             data["results"].append(
                 {
-                    "Datetime": datetime.strftime(row[i][2], "%Y/%m/%d"),
+                    "Datetime": datetime.strftime(row[i][2], "%Y/%m/%d %H:%M:%S"),
                     "radiation": row[i][1],
+                    "TrackId": row[i][3],
                 }
             )
         return jsonify(data)
@@ -321,11 +325,13 @@ def dicelog():
         for i in range(len(row)):
             data["results"].append(
                 {
-                    "Datetime": datetime.strftime(row[i][2], "%Y/%m/%d"),
+                    "Datetime": datetime.strftime(row[i][2], "%Y/%m/%d %H:%M:%S"),
                     "dice": row[i][1],
+                    "TrackId": row[i][3],
                 }
             )
         return jsonify(data)
+
 
 @app.route("/operation")
 def operation():
@@ -333,12 +339,23 @@ def operation():
         start = request.args.get("start")
         end = request.args.get("end")
         cursor = db.cursor()
-        cursor.execute("SELECT * FROM operation WHERE date >= %s and date <= %s orderby date",(start,end))
+        cursor.execute(
+            "SELECT * FROM operation WHERE date >= %s and date <= %s orderby date",
+            (start, end),
+        )
         row = cursor.fetchall()
         data = {"results": []}
         for i in range(len(row)):
-            data["results"].append({"Datetime" : datetime.strftime(row[i][0], "%Y/%m/%d"), "first": row[i][1],"second":row[i][2],"third":row[i][3]})
+            data["results"].append(
+                {
+                    "Datetime": datetime.strftime(row[i][0], "%Y/%m/%d"),
+                    "first": row[i][1],
+                    "second": row[i][2],
+                    "third": row[i][3],
+                }
+            )
         return jsonify(data)
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001, debug=True)
