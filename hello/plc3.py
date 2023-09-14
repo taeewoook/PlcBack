@@ -202,6 +202,11 @@ def on_message1(client, userdata, msg):
     from dual
     WHERE NOT EXISTS ( SELECT * FROM misconduct WHERE date = (%s))"""
     cursor.execute(sql, today)
+    sql = """INSERT INTO operation (date,first,second,third)
+                    SELECT current_date(),0,0,0
+                    from dual
+                    WHERE NOT EXISTS ( SELECT * FROM operation WHERE date = (%s))"""
+    cursor.execute(sql, today)
     trackid = None
     sql = "Select * from track order by id desc limit 1"
     data = msg.payload.decode("utf-8")
@@ -217,6 +222,9 @@ def on_message1(client, userdata, msg):
     #     client.publish("edukit/control", json.dumps(message), qos=1)
     data_dict = json.loads(msg.payload)
     dice = dice_recognition()
+    sql = """SELECT * FROM misconduct where date = (%s)"""
+    cursor.execute(sql, today)
+    row = cursor.fetchone()
     # 메시지를 JSON 형식으로 만듭니다.
     # dice = int(dice)
     # POST 요청에서 데이터 받아오기
@@ -235,13 +243,12 @@ def on_message1(client, userdata, msg):
         )
         cursor.execute(sql, (dice, trackid))
         cursor.execute(sqlradi, (radiation, stamp, trackid))
-        sql = """SELECT * FROM misconduct where date = (%s)"""
-        cursor.execute(sql,datetime.today())
-        row = cursor.fetchone()
     if dice >= 2 and dice <= 5 and radiation < 65:
         message = {"tagId": "11", "value": "1"}
+        sql = """UPDATE operation SET third = third + 1 WHERE date = (%s)"""
+        cursor.execute(sql, today)
         # update 테이블명 set 컬럼명 = 컬럼명+ 1 where 컬럼명 = 값
-        sql = """UPDATE misconduct set noraml = (%s) where date = (%s)"""
+        sql = """UPDATE misconduct set normal = (%s) where date = (%s)"""
         cursor.execute(sql, (int(row[1]) + 1, row[0]))
         mflag = False
     elif dice == 1 or dice == 6 or radiation >= 65:
