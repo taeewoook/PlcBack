@@ -25,11 +25,13 @@ def on_disconnect(client, userdata, flags, rc=0):
 
 
 trackflag = True
+twoflag = False
 
 
 def on_message(client, userdata, msg):
     today = datetime.today().strftime("%Y-%m-%d")
     global trackflag
+    global twoflag
     data = msg.payload.decode("utf-8")
     data_dict = json.loads(msg.payload)
     cursor = db.cursor()
@@ -37,6 +39,11 @@ def on_message(client, userdata, msg):
         SELECT current_date(),0,0
         from dual
         WHERE NOT EXISTS ( SELECT * FROM malfunction WHERE date = (%s))"""
+    cursor.execute(sql, today)
+    sql = """INSERT INTO operation (date,first,second,third)
+                SELECT current_date(),0,0,0
+                from dual
+                WHERE NOT EXISTS ( SELECT * FROM operation WHERE date = (%s))"""
     cursor.execute(sql, today)
     sql = """INSERT INTO hastrack (date,normal,defect)
     SELECT current_date(),0,0
@@ -55,6 +62,8 @@ def on_message(client, userdata, msg):
         cursor = db.cursor()
         sql = "INSERT INTO track (start, end) VALUES (%s, %s)"
         cursor.execute(sql, (start_time, end_time))
+        sql = """UPDATE operation SET first = first + 1 WHERE date = (%s)"""
+        cursor.execute(sql, today)
         db.commit()
     elif data_dict["Wrapper"][2]["value"] == False:
         trackflag = True
@@ -73,6 +82,12 @@ def on_message(client, userdata, msg):
     sql = """SELECT * FROM malfunction where date = (%s)"""
     cursor.execute(sql, today)
     row = cursor.fetchone()
+    if not twoflag and data_dict["Wrapper"][3]["value"]:
+        twoflag = True
+    if twoflag and not data_dict["Wrapper"][3]["value"]:
+        sql = """UPDATE operation SET second = second + 1 WHERE date = (%s)"""
+        cursor.execute(sql, today)
+        twoflag = False
     if (
         int(No3Motor2) > 0
         and int(No3Motor2) <= 18000000
@@ -87,7 +102,7 @@ def on_message(client, userdata, msg):
         or int(No3Motor1) < 0
         or int(No3Motor1) > 1150000
     ):
-        sql = """UPDATE malfunction set defect = (%s) where date = (%s)"""
+        sql = """UPDATE malfunction set detect = (%s) where date = (%s)"""
         cursor.execute(sql, (int(row[2]) + 1, row[0]))
     if Datetime >= r[1] and Datetime <= r[2]:
         TrackId = r[0]

@@ -33,19 +33,8 @@ def on_message(client, userdata, msg):
     global trackflag
     data = msg.payload.decode("utf-8")
     data_dict = json.loads(msg.payload)
-    dice = data_dict["Wrapper"][2]["name"]
-    # print(dice)  # dice 번호
-    if data_dict["Wrapper"][2]["value"] and trackflag:
-        print("ok")
-        trackflag = False
-        cursor = db.cursor()
-        start_time = datetime.now()
-        end_time = start_time + timedelta(seconds=23)
-        sql = "INSERT INTO track (start, end) VALUES (%s, %s)"
-        cursor.execute(sql, (start_time, end_time))
-        db.commit()
-    if data_dict["Wrapper"][2]["value"] == False:
-        trackflag = True
+    dice = data_dict["Wrapper"][4]["name"]
+    print(dice)
 
 
 trackflag = True
