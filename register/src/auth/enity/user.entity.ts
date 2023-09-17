@@ -4,6 +4,8 @@ import {
   Column,
   Entity,
   PrimaryGeneratedColumn,
+  DeleteDateColumn,
+  CreateDateColumn
 } from 'typeorm';
 
 @Entity('User')
@@ -19,4 +21,10 @@ export class User extends BaseEntity {
 
   @Column()
   password: string;
+
+  @DeleteDateColumn()
+  deletedAt!: Date | null;
+
+  @CreateDateColumn()
+  createdAt!: Date;
 }

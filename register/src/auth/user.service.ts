@@ -22,4 +22,10 @@ export class UserService {
   async save(userDTO: UserDTO): Promise<UserDTO | undefined> {
     return await this.userRepository.save(userDTO);
   }
+
+  async delete(userDTO: UserDTO): Promise<string | undefined> {
+    // console.log(userDTO);
+    await this.userRepository.softDelete({ id: userDTO.id });
+    return 'delete complete';
+  }
 }
