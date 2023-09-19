@@ -2,14 +2,25 @@ import paho.mqtt.client as mqtt
 import json
 import pymysql
 from datetime import datetime, timedelta
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+DB_HOST = os.getenv("DB_HOST")
+DB_PORT = os.getenv("DB_PORT")
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_NAME = os.getenv("DB_NAME")
+DB_CHARSET = os.getenv("DB_CHARSET")
 
 db = pymysql.connect(
-    host="localhost",
-    port=3306,
-    user="root",
-    passwd="1234",
-    db="PLC",
-    charset="utf8",
+    host=DB_HOST,
+    port=int(DB_PORT),
+    user=DB_USER,
+    passwd=DB_PASSWORD,
+    db=DB_NAME,
+    charset=DB_CHARSET,
 )
 
 
@@ -105,9 +116,6 @@ def on_message(client, userdata, msg):
     else:
         sql = """UPDATE hastrack set normal = (%s) where date = (%s)"""
         cursor.execute(sql, (int(row[1]) + 1, row[0]))
-    print(
-        Datetime, Start, No1Action, No2InPoint, No3Motor1, No3Motor2, Dicevalue, TrackId
-    )
     sql = """INSERT INTO record (Datetime,Start,No1Action,No2InPoint,No3Motor1,No3Motor2,Dicevalue,TrackId) values (%s,%s,%s,%s,%s,%s,%s,%s)"""
     cursor.execute(
         sql,

@@ -8,6 +8,8 @@ from socket import *
 from select import *
 from time import sleep
 from datetime import datetime, timedelta
+import os
+from dotenv import load_dotenv
 
 HOST = "192.168.0.120"
 PORT = 2004
@@ -126,13 +128,22 @@ def dice_recognition():
             return num
 
 
+load_dotenv()
+
+DB_HOST = os.getenv("DB_HOST")
+DB_PORT = os.getenv("DB_PORT")
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_NAME = os.getenv("DB_NAME")
+DB_CHARSET = os.getenv("DB_CHARSET")
+
 db = pymysql.connect(
-    host="localhost",
-    port=3306,
-    user="root",
-    passwd="1234",
-    db="plc",
-    charset="utf8",
+    host=DB_HOST,
+    port=int(DB_PORT),
+    user=DB_USER,
+    passwd=DB_PASSWORD,
+    db=DB_NAME,
+    charset=DB_CHARSET,
 )
 
 
