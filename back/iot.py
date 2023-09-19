@@ -9,16 +9,14 @@ from select import *
 from time import sleep
 from datetime import datetime, timedelta
 
-# 교육키트 IP
 HOST = "192.168.0.120"
-# 교육키트 Port
 PORT = 2004
 BUFSIZE = 1024
 ADDR = (HOST, PORT)
 
 
 def dice_recognition():
-    cap = cv2.VideoCapture(0)  # 0 or 1
+    cap = cv2.VideoCapture(0)
     readings = [-1, -1]
     display = [0, 0]
 
@@ -35,7 +33,6 @@ def dice_recognition():
 
     while True:
         ret, frame = cap.read()
-        # print(cap.read())
         frame_blurred = cv2.GaussianBlur(frame, Gaussian_ksize, 1)
         frame_gray = cv2.cvtColor(frame_blurred, cv2.COLOR_BGR2GRAY)
         frame_canny = cv2.Canny(
@@ -49,8 +46,6 @@ def dice_recognition():
         keypoints = detector.detect(frame_canny)
         num = len(keypoints)
         readings.append(num)
-
-        # print(readings)
         if (
             readings[-1]
             == readings[-2]
@@ -121,22 +116,16 @@ def dice_recognition():
             num_little = num.to_bytes(2, "little")
 
             if num != 0:
-                print("num is " + str(num))
                 try:
                     clientSocket = socket(AF_INET, SOCK_STREAM)
                     clientSocket.connect(ADDR)
-                    print("Connection PLC Success!")
                     clientSocket.send(socketTxData + num_little)
                     clientSocket.close()
                 except Exception as e:
                     print("Error" + str(e))
-            # cv2.imwrite("After.png", im_with_keypoints)
             return num
-            # print("close PLC Success!")
-            # sleep(1)
 
 
-# 데이터베이스 접속 설정
 db = pymysql.connect(
     host="localhost",
     port=3306,
@@ -159,7 +148,6 @@ def Decode(A):
 def Ardread():
     if ARD.readable():
         code = Decode(ARD.readline())
-        print(code)
         return code
     else:
         print("읽기 실패")
@@ -186,6 +174,8 @@ dice = 0
 
 mflag = True
 dflag = True
+trackflag = True
+twoflag = False
 
 
 def on_message1(client, userdata, msg):
@@ -195,13 +185,41 @@ def on_message1(client, userdata, msg):
     global dice
     global radiation
     global dflag
+    global trackflag
+    global twoflag
     radiation = 0
+    data = msg.payload.decode("utf-8")
+    data_dict = json.loads(msg.payload)
     cursor = db.cursor()
+    sql = """INSERT INTO operation (date,first,second,third)
+                SELECT current_date(),0,0,0
+                from dual
+                WHERE NOT EXISTS ( SELECT * FROM operation WHERE date = (%s))"""
+    cursor.execute(sql, today)
     sql = """INSERT INTO misconduct (date,normal,defect)
     SELECT current_date(),0,0
     from dual
     WHERE NOT EXISTS ( SELECT * FROM misconduct WHERE date = (%s))"""
     cursor.execute(sql, today)
+    TrackId = None
+    if data_dict["Wrapper"][2]["value"] and trackflag:
+        trackflag = False
+        sql = """UPDATE operation SET first = first + 1 WHERE date = (%s)"""
+        cursor.execute(sql, today)
+        db.commit()
+    elif data_dict["Wrapper"][2]["value"] == False:
+        trackflag = True
+    sql = "SELECT * FROM track order by id desc limit 1"
+    cursor.execute(sql)
+    row = cursor.fetchone()
+    if not twoflag and data_dict["Wrapper"][3]["value"]:
+        twoflag = True
+    if twoflag and not data_dict["Wrapper"][3]["value"]:
+        sql = """UPDATE operation SET second = second + 1 WHERE date = (%s)"""
+        cursor.execute(sql, today)
+        twoflag = False
+    row = cursor.fetchone()
+
     sql = """INSERT INTO operation (date,first,second,third)
                     SELECT current_date(),0,0,0
                     from dual
@@ -214,20 +232,11 @@ def on_message1(client, userdata, msg):
     r = cursor.fetchone()
     if r:
         trackid = r[0]
-    # if Ardread() > 50:
-    #     message = {"tagId": "11", "value": "0"}
-    #     client.publish("edukit/control", json.dumps(message), qos=1)
-    # else:
-    #     message = {"tagId": "11", "value": "1"}
-    #     client.publish("edukit/control", json.dumps(message), qos=1)
     data_dict = json.loads(msg.payload)
     dice = dice_recognition()
     sql = """SELECT * FROM misconduct where date = (%s)"""
     cursor.execute(sql, today)
     row = cursor.fetchone()
-    # 메시지를 JSON 형식으로 만듭니다.
-    # dice = int(dice)
-    # POST 요청에서 데이터 받아오기
     if dice == 0:
         dflag = False
     if dice > 0 and dice < 7 and not dflag:
@@ -236,7 +245,6 @@ def on_message1(client, userdata, msg):
         stamp = datetime.strptime(
             data_dict["Wrapper"][40]["value"], "%Y-%m-%dT%H:%M:%S.%fZ"
         )
-        # 데이터베이스에 데이터 삽입
         sql = """INSERT INTO dice (num,TrackId) VALUES (%s,%s)"""
         sqlradi = (
             """INSERT INTO radiation (figure,created_at,TrackId) VALUES (%s,%s,%s)"""
@@ -247,7 +255,6 @@ def on_message1(client, userdata, msg):
         message = {"tagId": "11", "value": "1"}
         sql = """UPDATE operation SET third = third + 1 WHERE date = (%s)"""
         cursor.execute(sql, today)
-        # update 테이블명 set 컬럼명 = 컬럼명+ 1 where 컬럼명 = 값
         sql = """UPDATE misconduct set normal = (%s) where date = (%s)"""
         cursor.execute(sql, (int(row[1]) + 1, row[0]))
         mflag = False
@@ -256,7 +263,6 @@ def on_message1(client, userdata, msg):
         sql = """UPDATE misconduct set defect = (%s) where date = (%s)"""
         cursor.execute(sql, (int(row[2]) + 1, row[0]))
         mflag = False
-    # JSON 메시지를 문자열로 변환하여 발행합니다.
     if mflag == False:
         client.publish("edukit/control", json.dumps(message), qos=1)
         mflag = True
@@ -265,21 +271,12 @@ def on_message1(client, userdata, msg):
 
 def on_message2(client, userdata, msg):
     data = msg.payload.decode("utf-8")
-    print(str(msg.payload.decode("utf-8")))
 
 
-# 새로운 클라이언트 생성
 client = mqtt.Client()
-if client.on_disconnect == 0:
-    client.subscribe("edukit/robotarm", 1)
-# 콜백 함수 설정 on_connect(브로커에 접속), on_disconnect(브로커에 접속중료), on_subscribe(topic 구독),
-# on_message(발행된 메세지가 들어왔을 때)
 client.on_connect = on_connect
 client.on_message = on_message1
-# client.on_message = on_message2
-# address : localhost, port: 1883 에 연결
 client.connect("localhost", 1883)
-# common topic 으로 메세지 발행
 client.subscribe("edukit/robotarm", 1)
 client.on_disconnect = on_disconnect
 client.loop_forever()

@@ -27,17 +27,13 @@ sys.stderr = io.TextIOWrapper(sys.stderr.detach(), encoding="utf-8")
 
 r = sr.Recognizer()
 
-# 새로운 클라이언트 생성
 client = mqtt.Client()
-# 콜백 함수 설정 on_connect(브로커에 접속), on_disconnect(브로커에 접속중료), on_message(발행된 메세지가 들어왔을 때)
 client.on_connect = on_connect
 client.on_disconnect = on_disconnect
 client.on_message = on_message
-# address : localhost, port: 1883 에 연결
 client.connect("localhost", 1883)
 while True:
     text = ""
-    # 마이크
     with sr.Microphone() as source:
         print("말해보셈", flush=True)
         audio = r.listen(source)
@@ -54,26 +50,24 @@ while True:
     print(text)
     if "켜" in text or "꺼" in text:
         if "켜" in text:
-            if "1" in text or "일" in text:  # 1호기 ON
+            if "1" in text or "일" in text:
                 a = 9
-            elif "2" in text or "이" in text:  # 2호기 ON
+            elif "2" in text or "이" in text:
                 a = 10
-            elif "3" in text or "삼" in text:  # 3호기 ON
+            elif "3" in text or "삼" in text:
                 a = 11
-            else:  # 전체 ON
+            else:
                 a = 1
             b = 1
         elif "꺼" in text:
-            if "1" in text or "일" in text:  # 1호기 OFF
+            if "1" in text or "일" in text:
                 a = 9
-            elif "2" in text or "이" in text:  # 2호기 OFF
+            elif "2" in text or "이" in text:
                 a = 10
-            elif "3" in text or "삼" in text:  # 3호기 OFF
+            elif "3" in text or "삼" in text:
                 a = 11
             else:
-                a = 1  # 전체 OFF
+                a = 1
             b = 0
-            # 메시지를 JSON 형식으로 만듭니다.
         message = {"tagId": "%d" % a, "value": "%d" % b}
-        # JSON 메시지를 문자열로 변환하여 발행합니다.
         client.publish("edukit/control", json.dumps(message), qos=1)
